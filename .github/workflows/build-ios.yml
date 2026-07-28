@@ -1,0 +1,48 @@
+name: Build iOS Simulator App
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: 🛑 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci || npm install
+
+      - name: 🛠️ Expo Prebuild (Generate Native iOS Project)
+        run: npx expo prebuild --platform ios --clean
+
+      - name: 🏗️ Build iOS Simulator App
+        run: |
+          xcodebuild -workspace ios/RepCount.xcworkspace \
+            -scheme RepCount \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build
+
+      - name: 📦 Compress Simulator App
+        run: |
+          cd build/Build/Products/Release-iphonesimulator
+          zip -r RepCount-Simulator.app.zip RepCount.app
+
+      - name: 📤 Upload Simulator App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RepCount-iOS-Simulator-App
+          path: build/Build/Products/Release-iphonesimulator/RepCount-Simulator.app.zip
+          retention-days: 30
