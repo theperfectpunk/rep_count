@@ -5,7 +5,12 @@ on:
     branches:
       - main
       - master
+    tags:
+      - 'v*'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-ios:
@@ -46,3 +51,13 @@ jobs:
           name: RepCount-iOS-Simulator-App
           path: build/Build/Products/Release-iphonesimulator/RepCount-Simulator.app.zip
           retention-days: 30
+
+      - name: 🚀 Publish iOS App to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v1.0.0' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'RepCount Release v1.0.0' }}
+          files: build/Build/Products/Release-iphonesimulator/RepCount-Simulator.app.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
