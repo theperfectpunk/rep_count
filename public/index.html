@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RepCount - Gym Workout Planner & Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="mobile-container">
+    <header>
+      <div class="profile-bar">
+        <div class="avatar">MT</div>
+        <div>
+          <h3 style="font-size: 14px;">Mohit Tokas</h3>
+          <span class="streak-badge">🔥 4 Week Streak</span>
+        </div>
+      </div>
+      <div id="workoutHeaderActions" style="display: none; gap: 8px; align-items: center;">
+        <button class="btn-danger-sm" id="cancelWorkoutBtn">CANCEL</button>
+        <button class="btn-success" id="finishWorkoutBtn">FINISH</button>
+      </div>
+    </header>
+
+    <!-- DASHBOARD SCREEN -->
+    <div class="screen active" id="screen-dashboard">
+      <button class="btn-primary" id="startEmptyWorkoutBtn" style="margin-bottom: 20px;">
+        ▶ START EMPTY WORKOUT
+      </button>
+
+      <div class="card">
+        <div class="card-title">WEEKLY VOLUME</div>
+        <div class="card-value">37,850 kg</div>
+        <p style="color: var(--success); font-size: 12px; margin-top: 4px; font-weight: 600;">+14.2% vs last week</p>
+      </div>
+
+      <h3 style="font-size: 16px; margin-bottom: 12px;">Recent Activity</h3>
+      <div id="recentActivityList">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="font-size: 15px;">Push Heavy - Chest & Shoulders</h4>
+            <span style="background: rgba(253, 203, 110, 0.2); color: var(--accent-gold); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">2 PRs</span>
+          </div>
+          <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">⏱️ 1h 15m • 12,450 kg total volume</p>
+        </div>
+
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="font-size: 15px;">Pull & Arms Hypertrophy</h4>
+            <span style="background: rgba(253, 203, 110, 0.2); color: var(--accent-gold); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">1 PR</span>
+          </div>
+          <p style="color: var(--text-muted); font-size: 13px; margin-top: 8px;">⏱️ 1h 00m • 9,800 kg total volume</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROUTINE PLANNER SCREEN -->
+    <div class="screen" id="screen-routines">
+      <h2 style="font-size: 18px; margin-bottom: 16px;">Routines & Folders</h2>
+      <div class="card">
+        <h4 style="font-size: 16px; margin-bottom: 6px;">Push Day A (Chest/Shoulders/Triceps)</h4>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">3 Exercises • Est. 55 mins</p>
+        <button class="btn-primary" style="padding: 10px;" onclick="window.startRoutine('Push Day A')">Start Routine</button>
+      </div>
+      <div class="card">
+        <h4 style="font-size: 16px; margin-bottom: 6px;">Pull Day A (Back/Biceps)</h4>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">3 Exercises • Est. 50 mins</p>
+        <button class="btn-primary" style="padding: 10px;" onclick="window.startRoutine('Pull Day A')">Start Routine</button>
+      </div>
+    </div>
+
+    <!-- LIVE WORKOUT LOGGER SCREEN -->
+    <div class="screen" id="screen-logger">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div>
+          <h2 id="activeWorkoutTitle" style="font-size: 18px;">Quick Workout</h2>
+          <p id="activeWorkoutTime" style="color: var(--text-muted); font-size: 13px;">⏱️ 00:00 • 0 kg volume</p>
+        </div>
+      </div>
+
+      <div id="exerciseLogsContainer"></div>
+
+      <button class="btn-primary" style="background: transparent; border: 1px dashed var(--primary); color: var(--primary);" id="addExerciseBtn">
+        + ADD EXERCISE
+      </button>
+    </div>
+
+    <!-- EXERCISE LIBRARY SCREEN -->
+    <div class="screen" id="screen-exercises">
+      <input type="text" id="searchInput" placeholder="Search 100+ exercises..." class="set-input" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 16px;">
+      <div id="exerciseList"></div>
+    </div>
+
+    <!-- ANALYTICS SCREEN -->
+    <div class="screen" id="screen-analytics">
+      <h2 style="font-size: 18px; margin-bottom: 16px;">Analytics & PR Wall</h2>
+      <div class="card">
+        <div class="card-title">1RM PROGRESSION (BENCH PRESS)</div>
+        <div class="card-value" style="color: var(--success);">125 kg (PR)</div>
+        <p style="color: var(--text-muted); font-size: 12px; margin-top: 8px;">+15kg progression over last 30 days</p>
+      </div>
+    </div>
+
+    <!-- STICKY REST TIMER BAR -->
+    <div class="sticky-timer-bar" id="stickyTimerBar" style="display: none;">
+      <div class="timer-info">
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: bold;">REST TIMER</div>
+        <div class="timer-time" id="timerTime">01:30</div>
+      </div>
+      <div class="timer-presets">
+        <button class="preset-btn" data-sec="60" onclick="window.setRestDuration(60)">60s</button>
+        <button class="preset-btn active" data-sec="90" onclick="window.setRestDuration(90)">90s</button>
+        <button class="preset-btn" data-sec="120" onclick="window.setRestDuration(120)">120s</button>
+        <button class="preset-btn" data-sec="180" onclick="window.setRestDuration(180)">180s</button>
+      </div>
+      <div class="timer-controls">
+        <button class="btn-small" onclick="window.addTimerTime(30)">+30s</button>
+        <button class="btn-close-timer" onclick="window.stopTimer()">✕</button>
+      </div>
+    </div>
+
+    <!-- PLATE CALCULATOR MODAL -->
+    <div class="modal" id="plateModal">
+      <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div class="card-title" style="margin-bottom: 0;">PLATE CALCULATOR</div>
+          <button style="background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;" onclick="window.closePlateModal()">✕</button>
+        </div>
+        <h2 id="modalWeightVal" style="font-size: 32px; text-align: center; margin: 8px 0; color: white;">60.0 kg</h2>
+        <p id="modalSubtext" style="text-align: center; color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">20kg Olympic Bar + Plates Per Side</p>
+        
+        <!-- Visual Barbell Sleeve -->
+        <div id="plateVisualContainer" class="plate-visual-container"></div>
+        
+        <!-- Breakdown List -->
+        <div id="plateBreakdownList" class="plate-breakdown-list"></div>
+
+        <button class="btn-primary" style="margin-top: 16px;" onclick="window.closePlateModal()">Close</button>
+      </div>
+    </div>
+
+    <!-- WORKOUT SUMMARY MODAL -->
+    <div class="modal" id="workoutSummaryModal">
+      <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 40px; margin-bottom: 4px;">🎉</div>
+          <h2 style="font-size: 22px; font-weight: 800;">Workout Completed!</h2>
+          <p id="summaryWorkoutTitle" style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Quick Workout</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+          <div class="summary-stat-card">
+            <div class="stat-label">TIME ELAPSED</div>
+            <div id="summaryTime" class="stat-val" style="color: var(--primary);">00:00</div>
+          </div>
+          <div class="summary-stat-card">
+            <div class="stat-label">TOTAL VOLUME</div>
+            <div id="summaryVolume" class="stat-val" style="color: var(--success);">0 kg</div>
+          </div>
+          <div class="summary-stat-card">
+            <div class="stat-label">SETS COMPLETED</div>
+            <div id="summarySets" class="stat-val" style="color: white;">0</div>
+          </div>
+          <div class="summary-stat-card">
+            <div class="stat-label">PERSONAL RECORDS</div>
+            <div id="summaryPRs" class="stat-val" style="color: var(--accent-gold);">🏆 0 PRs</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px; font-weight: 700;">EXERCISE SUMMARY</h4>
+          <div id="summaryExerciseList"></div>
+        </div>
+
+        <button class="btn-primary" id="saveSummaryBtn">Save & Return Home</button>
+      </div>
+    </div>
+
+    <!-- CANCEL WORKOUT CONFIRM MODAL -->
+    <div class="modal" id="cancelConfirmModal">
+      <div class="modal-content" style="text-align: center;">
+        <div style="font-size: 36px; margin-bottom: 8px;">⚠️</div>
+        <h3 style="font-size: 18px; margin-bottom: 8px;">Cancel Workout?</h3>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+          Are you sure you want to discard this workout session? All logged sets will be lost.
+        </p>
+        <div style="display: flex; gap: 12px;">
+          <button class="btn-secondary" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); border-radius: 12px; color: white; font-weight: bold; cursor: pointer;" onclick="window.closeCancelModal()">Keep Logging</button>
+          <button class="btn-danger" style="flex: 1; padding: 12px; background: #ff4d4d; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer;" onclick="window.confirmCancelWorkout()">Discard Workout</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXERCISE PICKER MODAL -->
+    <div class="modal" id="exercisePickerModal">
+      <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 18px;">Select Exercise to Add</h3>
+          <button style="background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;" onclick="window.closeExercisePickerModal()">✕</button>
+        </div>
+        <input type="text" id="pickerSearchInput" placeholder="Search exercise name or muscle..." class="set-input" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 12px;" onkeyup="window.filterPickerExercises(this.value)">
+        <div id="pickerExerciseList" style="overflow-y: auto; max-height: 50vh;"></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV BAR -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="window.switchTab('dashboard')">
+        <span class="nav-icon">🏠</span>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" onclick="window.switchTab('routines')">
+        <span class="nav-icon">📁</span>
+        <span>Routines</span>
+      </button>
+      <button class="nav-item" onclick="window.switchTab('logger')">
+        <span class="nav-icon">🏋️</span>
+        <span>Log</span>
+      </button>
+      <button class="nav-item" onclick="window.switchTab('exercises')">
+        <span class="nav-icon">🔍</span>
+        <span>Library</span>
+      </button>
+      <button class="nav-item" onclick="window.switchTab('analytics')">
+        <span class="nav-icon">📈</span>
+        <span>Analytics</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
