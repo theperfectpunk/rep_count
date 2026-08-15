@@ -5,6 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RepCount - Gym Workout Planner & Tracker</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .muscle-filter-btn, .submuscle-filter-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .muscle-filter-btn.active, .submuscle-filter-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 2px 8px rgba(108, 92, 231, 0.4);
+    }
+    #primaryMuscleFilterContainer::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
 </head>
 <body>
   <!-- TOAST NOTIFICATION CONTAINER -->
@@ -13,10 +37,10 @@
   <div class="mobile-container">
     <header>
       <div class="profile-bar">
-        <div class="avatar">MT</div>
+        <div class="avatar" id="headerAvatar">MT</div>
         <div>
-          <h3 style="font-size: 14px;">Mohit Tokas</h3>
-          <span class="streak-badge">🔥 4 Week Streak</span>
+          <h3 id="headerUserName" style="font-size: 14px;">Mohit Tokas</h3>
+          <span class="streak-badge" id="headerUserSub">🔥 4 Week Streak</span>
         </div>
       </div>
       <div id="workoutHeaderActions" style="display: none; gap: 8px; align-items: center;">
@@ -24,6 +48,69 @@
         <button class="btn-success" id="finishWorkoutBtn">FINISH</button>
       </div>
     </header>
+
+    <!-- AUTHENTICATION SCREEN -->
+    <div class="screen" id="screen-auth">
+      <div class="auth-container">
+        <div class="auth-brand">
+          <div class="auth-logo">💪</div>
+          <h1 class="auth-title">RepCount</h1>
+          <p class="auth-subtitle">Enter your phone number to sign up or log in</p>
+        </div>
+
+        <div class="auth-card">
+          <!-- Step 1: Phone Entry -->
+          <div id="phoneAuthSection">
+            <label class="auth-label">Phone Number</label>
+            <div class="phone-input-row">
+              <select id="countryCodeSelect" class="country-code-select">
+                <option value="+1" selected>🇺🇸 +1</option>
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+61">🇦🇺 +61</option>
+                <option value="+81">🇯🇵 +81</option>
+                <option value="+49">🇩🇪 +49</option>
+                <option value="+33">🇫🇷 +33</option>
+              </select>
+              <input type="tel" id="phoneNumberInput" class="set-input auth-phone-input" placeholder="555-555-5555">
+            </div>
+            <button id="sendCodeBtn" class="btn-primary" style="margin-top: 16px;">Send Verification Code</button>
+          </div>
+
+          <!-- Step 2: OTP Verification (hidden initially) -->
+          <div id="otpSection" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="auth-label" style="margin-bottom: 0;">Verification Code</span>
+              <button id="changePhoneBtn" style="background: none; border: none; color: var(--primary); font-size: 12px; font-weight: bold; cursor: pointer;">Edit Phone</button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 12px;" id="otpPhoneDisplay">Sent 6-digit code to phone</p>
+            <div class="otp-inputs-row">
+              <input type="text" maxlength="1" class="otp-pin-input" data-index="0" inputmode="numeric">
+              <input type="text" maxlength="1" class="otp-pin-input" data-index="1" inputmode="numeric">
+              <input type="text" maxlength="1" class="otp-pin-input" data-index="2" inputmode="numeric">
+              <input type="text" maxlength="1" class="otp-pin-input" data-index="3" inputmode="numeric">
+              <input type="text" maxlength="1" class="otp-pin-input" data-index="4" inputmode="numeric">
+              <input type="text" maxlength="1" class="otp-pin-input" data-index="5" inputmode="numeric">
+            </div>
+            <button id="verifyOtpBtn" class="btn-primary" style="margin-top: 16px;">Verify OTP</button>
+          </div>
+
+          <div class="auth-divider">
+            <span>OR</span>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="auth-alt-buttons">
+            <button id="demoTestBtn" class="btn-secondary-auth">
+              ⚡ Demo Test Number (+1 555-555-5555)
+            </button>
+            <button id="anonymousLoginBtn" class="btn-secondary-auth" style="margin-top: 8px;">
+              👤 Use Mock / Anonymous Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- DASHBOARD SCREEN -->
     <div class="screen active" id="screen-dashboard">
@@ -59,17 +146,11 @@
 
     <!-- ROUTINE PLANNER SCREEN -->
     <div class="screen" id="screen-routines">
-      <h2 style="font-size: 18px; margin-bottom: 16px;">Routines & Folders</h2>
-      <div class="card">
-        <h4 style="font-size: 16px; margin-bottom: 6px;">Push Day A (Chest/Shoulders/Triceps)</h4>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">3 Exercises • Est. 55 mins</p>
-        <button class="btn-primary" style="padding: 10px;" onclick="window.startRoutine('Push Day A')">Start Routine</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="font-size: 18px; margin: 0;">Routines & Folders</h2>
+        <button id="createRoutineBtn" class="btn-primary" style="width: auto; padding: 6px 12px; font-size: 14px;">+ Create</button>
       </div>
-      <div class="card">
-        <h4 style="font-size: 16px; margin-bottom: 6px;">Pull Day A (Back/Biceps)</h4>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">3 Exercises • Est. 50 mins</p>
-        <button class="btn-primary" style="padding: 10px;" onclick="window.startRoutine('Pull Day A')">Start Routine</button>
-      </div>
+      <div id="routinesContainer"></div>
     </div>
 
     <!-- LIVE WORKOUT LOGGER SCREEN -->
@@ -90,7 +171,23 @@
 
     <!-- EXERCISE LIBRARY SCREEN -->
     <div class="screen" id="screen-exercises">
-      <input type="text" id="searchInput" placeholder="Search 100+ exercises..." class="set-input" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 16px;">
+      <input type="text" id="searchInput" placeholder="Search 100+ exercises..." class="set-input" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 12px;">
+
+      <!-- LEVEL 1 PRIMARY MUSCLE FILTER ROW -->
+      <div id="primaryMuscleFilterContainer" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none;">
+        <button class="muscle-filter-btn active" data-group="All" onclick="window.selectMuscleGroup('All')">All</button>
+        <button class="muscle-filter-btn" data-group="Chest" onclick="window.selectMuscleGroup('Chest')">Chest</button>
+        <button class="muscle-filter-btn" data-group="Back" onclick="window.selectMuscleGroup('Back')">Back</button>
+        <button class="muscle-filter-btn" data-group="Shoulders" onclick="window.selectMuscleGroup('Shoulders')">Shoulders</button>
+        <button class="muscle-filter-btn" data-group="Legs" onclick="window.selectMuscleGroup('Legs')">Legs</button>
+        <button class="muscle-filter-btn" data-group="Arms" onclick="window.selectMuscleGroup('Arms')">Arms</button>
+        <button class="muscle-filter-btn" data-group="Core" onclick="window.selectMuscleGroup('Core')">Core</button>
+        <button class="muscle-filter-btn" data-group="Other" onclick="window.selectMuscleGroup('Other')">Other</button>
+      </div>
+
+      <!-- LEVEL 2 SUB-MUSCLE FILTER CONTAINER -->
+      <div id="subMuscleFilterContainer" style="display: none; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;"></div>
+
       <div id="exerciseList"></div>
     </div>
 
@@ -204,6 +301,73 @@
         <input type="text" id="pickerSearchInput" placeholder="Search exercise name or muscle..." class="set-input" style="width: 100%; text-align: left; padding: 12px; margin-bottom: 12px;" onkeyup="window.filterPickerExercises(this.value)">
         <div id="pickerExerciseList" style="overflow-y: auto; max-height: 50vh;"></div>
       </div>
+    <!-- ROUTINE EDITOR MODAL -->
+    <div class="modal" id="routineEditorModal">
+      <div class="modal-content" style="max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-shrink: 0;">
+          <h3 id="routineEditorModalTitle" style="font-size: 18px;">Create Routine</h3>
+          <button style="background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;" onclick="window.closeRoutineEditorModal()">✕</button>
+        </div>
+
+        <div style="overflow-y: auto; flex: 1; padding-right: 4px;">
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; letter-spacing: 0.5px;">ROUTINE TITLE</label>
+            <input type="text" id="routineTitleInput" class="set-input" style="width: 100%; text-align: left; padding: 10px 12px;" placeholder="e.g. Upper Body Power">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; letter-spacing: 0.5px;">FOLDER NAME</label>
+              <input type="text" id="routineFolderInput" class="set-input" style="width: 100%; text-align: left; padding: 10px 12px;" value="Custom Workouts" placeholder="Folder name">
+            </div>
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; letter-spacing: 0.5px;">ESTIMATED DURATION</label>
+              <select id="routineDurationSelect" class="set-input" style="width: 100%; text-align: left; padding: 10px 12px; color: white;">
+                <option value="30">30 mins</option>
+                <option value="45">45 mins</option>
+                <option value="60" selected>60 mins</option>
+                <option value="75">75 mins</option>
+                <option value="90">90 mins</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">SELECTED EXERCISES</label>
+            <span id="routineExerciseCount" style="font-size: 12px; color: var(--primary); font-weight: 700;">0 exercises</span>
+          </div>
+
+          <div id="routineSelectedExercisesList" class="routine-exercise-list"></div>
+
+          <button class="btn-primary" id="routineAddExercisesBtn" style="background: rgba(108, 92, 231, 0.15); color: var(--primary); border: 1px dashed var(--primary); box-shadow: none; margin-top: 12px; padding: 12px;" onclick="window.openRoutineExercisePickerModal()">
+            + Add Exercises
+          </button>
+        </div>
+
+        <div style="margin-top: 12px; display: flex; gap: 10px; flex-shrink: 0; padding-top: 12px; border-top: 1px solid var(--card-border);">
+          <button class="btn-secondary" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); border-radius: 12px; color: white; font-weight: bold; cursor: pointer;" onclick="window.closeRoutineEditorModal()">Cancel</button>
+          <button class="btn-primary" id="routineSaveBtn" style="flex: 2; padding: 12px;" onclick="window.saveRoutineFromEditor()">Save Routine</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROUTINE EXERCISE PICKER SUB-MODAL -->
+    <div class="modal" id="routineExercisePickerModal">
+      <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
+          <h3 style="font-size: 18px;">Select Exercises</h3>
+          <button style="background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;" onclick="window.closeRoutineExercisePickerModal()">✕</button>
+        </div>
+
+        <input type="text" id="routinePickerSearchInput" placeholder="Search exercise name or muscle..." class="set-input" style="width: 100%; text-align: left; padding: 10px 12px; margin-bottom: 12px; flex-shrink: 0;" onkeyup="window.filterRoutinePickerExercises(this.value)">
+
+        <div id="routinePickerExerciseList" style="overflow-y: auto; flex: 1; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
+
+        <div style="display: flex; gap: 10px; flex-shrink: 0; padding-top: 8px; border-top: 1px solid var(--card-border);">
+          <button class="btn-secondary" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); border-radius: 12px; color: white; font-weight: bold; cursor: pointer;" onclick="window.closeRoutineExercisePickerModal()">Cancel</button>
+          <button class="btn-primary" id="addSelectedExercisesBtn" style="flex: 2; padding: 12px;" onclick="window.addSelectedExercisesToRoutine()">Add Selected (0)</button>
+        </div>
+      </div>
     </div>
 
     <!-- BOTTOM NAV BAR -->
@@ -231,6 +395,11 @@
     </nav>
   </div>
 
+  <div id="recaptcha-container"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

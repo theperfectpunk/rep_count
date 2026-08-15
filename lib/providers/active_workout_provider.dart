@@ -134,6 +134,7 @@ class ActiveWorkoutNotifier extends StateNotifier<WorkoutSession?> {
   WorkoutSession? finishWorkout() {
     if (state == null) return null;
     _sessionDurationTimer?.cancel();
+    _sessionDurationTimer = null;
     final completedSession = state!.copyWith(
       completedAt: DateTime.now(),
       isCompleted: true,
@@ -144,6 +145,7 @@ class ActiveWorkoutNotifier extends StateNotifier<WorkoutSession?> {
 
   void cancelWorkout() {
     _sessionDurationTimer?.cancel();
+    _sessionDurationTimer = null;
     state = null;
   }
 

@@ -99,44 +99,47 @@ class _PlateCalculatorModalState extends State<PlateCalculatorModal> {
               color: const Color(0xFF11111B),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Bar Left Sleeve
-                Container(width: 20, height: 6, color: Colors.grey.shade400),
-                // Plates on left side
-                ...platesPerSide.entries.expand((entry) {
-                  return List.generate(entry.value, (index) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      width: 10 + (entry.key * 0.4),
-                      height: 45 + (entry.key * 1.2),
-                      decoration: BoxDecoration(
-                        color: _getPlateColor(entry.key),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    );
-                  });
-                }),
-                // Main Barbell Shaft
-                Container(width: 80, height: 10, color: Colors.grey.shade300),
-                // Plates on right side
-                ...platesPerSide.entries.expand((entry) {
-                  return List.generate(entry.value, (index) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      width: 10 + (entry.key * 0.4),
-                      height: 45 + (entry.key * 1.2),
-                      decoration: BoxDecoration(
-                        color: _getPlateColor(entry.key),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    );
-                  });
-                }),
-                // Bar Right Sleeve
-                Container(width: 20, height: 6, color: Colors.grey.shade400),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Bar Left Sleeve
+                  Container(width: 20, height: 6, color: Colors.grey.shade400),
+                  // Plates on left side
+                  ...platesPerSide.entries.expand((entry) {
+                    return List.generate(entry.value, (index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        width: 10 + (entry.key * 0.4),
+                        height: 45 + (entry.key * 1.2),
+                        decoration: BoxDecoration(
+                          color: _getPlateColor(entry.key),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      );
+                    });
+                  }),
+                  // Main Barbell Shaft
+                  Container(width: 80, height: 10, color: Colors.grey.shade300),
+                  // Plates on right side
+                  ...platesPerSide.entries.expand((entry) {
+                    return List.generate(entry.value, (index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        width: 10 + (entry.key * 0.4),
+                        height: 45 + (entry.key * 1.2),
+                        decoration: BoxDecoration(
+                          color: _getPlateColor(entry.key),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      );
+                    });
+                  }),
+                  // Bar Right Sleeve
+                  Container(width: 20, height: 6, color: Colors.grey.shade400),
+                ],
+              ),
             ),
           ),
 

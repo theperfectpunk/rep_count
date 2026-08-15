@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/active_workout_provider.dart';
 import '../models/exercise_log.dart';
 import '../models/set_item.dart';
 import '../repositories/exercise_repository.dart';
+import '../repositories/workout_repository.dart';
 import '../widgets/plate_calculator_modal.dart';
 import '../widgets/sticky_timer_bar.dart';
+import 'workout_summary_screen.dart';
 
 class LiveWorkoutScreen extends ConsumerWidget {
   const LiveWorkoutScreen({Key? key}) : super(key: key);
@@ -219,14 +222,64 @@ class LiveWorkoutScreen extends ConsumerWidget {
         ),
         actions: [
           ElevatedButton(
-            onPressed: () {
-              ref.read(activeWorkoutProvider.notifier).finishWorkout();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('🎉 Workout Completed & Synced to Cloud!'),
-                  backgroundColor: Color(0xFF00B894),
-                ),
+            onPressed: () async {
+              final hasCompletedSets = activeWorkout.exercises.any(
+                (ex) => ex.sets.any((s) => s.isCompleted),
               );
+
+              if (!hasCompletedSets) {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: const Color(0xFF1E1E2E),
+                    title: const Text('Finish Workout?',
+                        style: TextStyle(color: Colors.white)),
+                    content: const Text(
+                      'You have 0 completed sets. Finish anyway?',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel',
+                            style: TextStyle(color: Colors.grey)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00B894),
+                        ),
+                        child: const Text('Finish',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm != true) {
+                  return;
+                }
+              }
+
+              final completedSession =
+                  ref.read(activeWorkoutProvider.notifier).finishWorkout();
+              if (completedSession != null) {
+                WorkoutRepository().saveCompletedWorkout(
+                  completedSession,
+                  userId: FirebaseAuth.instance.currentUser?.uid,
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🎉 Workout Completed & Synced to Cloud!'),
+                      backgroundColor: Color(0xFF00B894),
+                    ),
+                  );
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => WorkoutSummaryScreen(session: completedSession),
+                  ));
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00B894),
@@ -341,6 +394,7 @@ class LiveWorkoutScreen extends ConsumerWidget {
           Row(
             children: [
               const SizedBox(width: 44, child: Text('SET', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold))),
+              const Expanded(child: Center(child: Text('PREV', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)))),
               const Expanded(child: Center(child: Text('KG / LBS', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)))),
               const Expanded(child: Center(child: Text('REPS', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)))),
               const SizedBox(width: 44, child: Center(child: Text('✓', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)))),
@@ -398,34 +452,28 @@ class LiveWorkoutScreen extends ConsumerWidget {
                       ),
                     ),
 
-                    // Weight Input Field
+                    // PREV Performance Placeholder
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          '-- × --',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ),
+                    ),
+
+                    // Weight Input Field with +/- 2.5 buttons
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                        child: TextField(
-                          style: const TextStyle(color: Colors.white),
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            hintText: '${setItem.weightKg}',
-                            hintStyle: TextStyle(color: Colors.grey.shade600),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.all(8),
-                            filled: true,
-                            fillColor: const Color(0xFF11111B),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          onChanged: (val) {
-                            final w = double.tryParse(val);
-                            if (w != null) {
-                              ref
-                                  .read(activeWorkoutProvider.notifier)
-                                  .updateSetValues(exercise.exerciseId, setIdx,
-                                      weight: w);
-                            }
+                        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                        child: _WeightInputField(
+                          key: ValueKey('${setItem.setId}_weight'),
+                          initialWeight: setItem.weightKg,
+                          onChanged: (w) {
+                            ref
+                                .read(activeWorkoutProvider.notifier)
+                                .updateSetValues(exercise.exerciseId, setIdx,
+                                    weight: w);
                           },
                         ),
                       ),
@@ -516,3 +564,139 @@ class LiveWorkoutScreen extends ConsumerWidget {
     );
   }
 }
+
+class _WeightInputField extends StatefulWidget {
+  final double initialWeight;
+  final ValueChanged<double> onChanged;
+
+  const _WeightInputField({
+    Key? key,
+    required this.initialWeight,
+    required this.onChanged,
+  }) : super(key: key);
+
+  @override
+  State<_WeightInputField> createState() => _WeightInputFieldState();
+}
+
+class _WeightInputFieldState extends State<_WeightInputField> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.initialWeight == 0 ? '' : _formatWeight(widget.initialWeight),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _WeightInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialWeight != widget.initialWeight) {
+      final currentParsed = double.tryParse(_controller.text);
+      if (currentParsed != widget.initialWeight) {
+        _controller.text = widget.initialWeight == 0 ? '' : _formatWeight(widget.initialWeight);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _formatWeight(double val) {
+    if (val == val.toInt()) {
+      return val.toInt().toString();
+    }
+    return val.toString();
+  }
+
+  void _adjustWeight(double delta) {
+    final current = double.tryParse(_controller.text) ?? widget.initialWeight;
+    double updated = (current + delta);
+    if (updated < 0) updated = 0;
+    updated = (updated * 100).roundToDouble() / 100;
+    final formatted = _formatWeight(updated);
+    _controller.text = formatted;
+    widget.onChanged(updated);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () => _adjustWeight(-2.5),
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              '-2.5',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 2),
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            textAlign: TextAlign.center,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              hintText: '${widget.initialWeight}',
+              hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              filled: true,
+              fillColor: const Color(0xFF11111B),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (val) {
+              final w = double.tryParse(val);
+              if (w != null) {
+                widget.onChanged(w);
+              }
+            },
+          ),
+        ),
+        const SizedBox(width: 2),
+        InkWell(
+          onTap: () => _adjustWeight(2.5),
+          borderRadius: BorderRadius.circular(4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              '+2.5',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+

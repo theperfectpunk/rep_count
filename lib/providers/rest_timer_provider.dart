@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class RestTimerState {
@@ -42,6 +43,7 @@ class RestTimerNotifier extends StateNotifier<RestTimerState> {
       if (state.secondsRemaining > 1) {
         state = state.copyWith(secondsRemaining: state.secondsRemaining - 1);
       } else {
+        HapticFeedback.heavyImpact();
         stopTimer();
       }
     });

@@ -1,12 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rep_count/repositories/workout_repository.dart';
 import 'package:rep_count/models/workout_session.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('WorkoutRepository Unit Tests', () {
     late WorkoutRepository repo;
 
     setUp(() {
+      SharedPreferences.setMockInitialValues({});
       repo = WorkoutRepository();
     });
 
