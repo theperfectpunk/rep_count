@@ -33,9 +33,6 @@ jobs:
       - name: Verify Flutter Installation
         run: flutter --version
 
-      - name: Generate Platform Scaffolding
-        run: flutter create . --org com.theperfectpunk --project-name rep_count --platforms=android,web
-
       - name: Install Dependencies
         run: flutter pub get
 
