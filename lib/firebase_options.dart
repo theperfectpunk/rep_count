@@ -42,6 +42,18 @@ class DefaultFirebaseOptions {
             'repcount-app-2026.firebasestorage.app'),
       );
 
-  static FirebaseOptions get android => web;
+  static FirebaseOptions get android => FirebaseOptions(
+        apiKey: _getEnv('ANDROID_FIREBASE_API_KEY',
+            'AIzaSyDVBvzlDsc4SXnx3G4S2K-wmiDA2fkm65Q'),
+        appId: _getEnv('ANDROID_FIREBASE_APP_ID',
+            '1:596487429514:android:18d7b13cad7cf98e20bc73'),
+        messagingSenderId: _getEnv('EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+            '596487429514'),
+        projectId: _getEnv('EXPO_PUBLIC_FIREBASE_PROJECT_ID',
+            'repcount-app-2026'),
+        storageBucket: _getEnv('EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
+            'repcount-app-2026.firebasestorage.app'),
+      );
+
   static FirebaseOptions get ios => web;
 }

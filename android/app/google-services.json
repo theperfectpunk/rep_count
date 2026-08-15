@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "596487429514",
+    "project_id": "repcount-app-2026",
+    "storage_bucket": "repcount-app-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:596487429514:android:18d7b13cad7cf98e20bc73",
+        "android_client_info": {
+          "package_name": "com.theperfectpunk.rep_count"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVBvzlDsc4SXnx3G4S2K-wmiDA2fkm65Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
