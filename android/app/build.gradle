@@ -45,9 +45,26 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        release {
+            def keystoreFile = file('release.keystore')
+            if (keystoreFile.exists()) {
+                storeFile keystoreFile
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "repcount_release_2026"
+                keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "repcount"
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: "repcount_release_2026"
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            def keystoreFile = file('release.keystore')
+            if (keystoreFile.exists()) {
+                signingConfig = signingConfigs.release
+            } else {
+                signingConfig = signingConfigs.debug
+            }
         }
     }
 }
