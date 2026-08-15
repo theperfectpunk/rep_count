@@ -33,7 +33,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _currentUser = FirebaseAuth.instance.currentUser;
+    try {
+      _currentUser = FirebaseAuth.instance.currentUser;
+    } catch (_) {}
 
     final savedUnit = prefs.getString('user_unit') ?? 'kg';
 

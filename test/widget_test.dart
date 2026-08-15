@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rep_count/main.dart';
@@ -14,11 +15,13 @@ void main() {
             (ref) async => <WorkoutSession>[],
           ),
         ],
-        child: const GymWorkoutApp(),
+        child: const MaterialApp(
+          home: MainNavigationShell(),
+        ),
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('START EMPTY WORKOUT'), findsOneWidget);
     expect(find.text('WEEKLY VOLUME'), findsOneWidget);

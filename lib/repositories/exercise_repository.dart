@@ -5,11 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/exercise.dart';
 
 class ExerciseRepository {
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
   List<Exercise> _cachedExercises = [];
 
   ExerciseRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore;
 
   static final List<Exercise> _masterExercises = [
     // --- CHEST ---
@@ -579,20 +579,25 @@ class ExerciseRepository {
   /// 2. Offline (Subsequent runs): Uses local persistent cache from disk.
   /// 3. Offline (First run ever): Uses hardcoded fallback.
   Future<List<Exercise>> fetchExercisesFromFirebase() async {
-    try {
-      final snapshot = await _firestore.collection('exercises').get();
+    if (_firestore != null) {
+      try {
+        final snapshot = await _firestore!
+            .collection('exercises')
+            .get();
 
-      if (snapshot.docs.isNotEmpty) {
-        final exercises = snapshot.docs
-            .map((doc) => Exercise.fromJson(doc.data()..putIfAbsent('id', () => doc.id)))
-            .toList();
-        _cachedExercises = exercises;
-        await _saveToPersistentCache(exercises);
-        debugPrint('🔥 Loaded ${exercises.length} exercises from Firebase & updated local persistent cache.');
-        return _cachedExercises;
+        if (snapshot.docs.isNotEmpty) {
+          final remoteExercises = snapshot.docs
+              .map((doc) => Exercise.fromJson(doc.data()..putIfAbsent('id', () => doc.id)))
+              .toList();
+
+          _cachedExercises = remoteExercises;
+          await _saveToPersistentCache(remoteExercises);
+          debugPrint('🔥 Loaded ${remoteExercises.length} exercises from Firebase & updated persistent cache.');
+          return _cachedExercises;
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error fetching exercises from Firebase: $e. Checking local persistent cache...');
       }
-    } catch (e) {
-      debugPrint('⚠️ Error fetching exercises from Firebase: $e. Checking local persistent cache...');
     }
 
     // Try loading persistent disk cache (App run at least once)
@@ -634,7 +639,10 @@ class ExerciseRepository {
 
   /// Stream of exercises from Firebase Firestore.
   Stream<List<Exercise>> getExercisesStream() {
-    return _firestore.collection('exercises').snapshots().map((snapshot) {
+    if (_firestore == null) {
+      return Stream.value(_cachedExercises.isNotEmpty ? _cachedExercises : _masterExercises);
+    }
+    return _firestore!.collection('exercises').snapshots().map((snapshot) {
       if (snapshot.docs.isEmpty) {
         return _cachedExercises.isNotEmpty ? _cachedExercises : _masterExercises;
       }

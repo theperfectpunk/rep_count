@@ -264,9 +264,13 @@ class LiveWorkoutScreen extends ConsumerWidget {
               final completedSession =
                   ref.read(activeWorkoutProvider.notifier).finishWorkout();
               if (completedSession != null) {
+                String? currentUserId;
+                try {
+                  currentUserId = FirebaseAuth.instance.currentUser?.uid;
+                } catch (_) {}
                 WorkoutRepository().saveCompletedWorkout(
                   completedSession,
-                  userId: FirebaseAuth.instance.currentUser?.uid,
+                  userId: currentUserId,
                 );
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

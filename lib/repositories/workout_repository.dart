@@ -5,11 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/workout_session.dart';
 
 class WorkoutRepository {
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
   List<WorkoutSession> _cachedWorkouts = [];
 
   WorkoutRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance {
+      : _firestore = firestore {
     _populateInitialHistory();
   }
 
@@ -58,30 +58,29 @@ class WorkoutRepository {
   }
 
   /// Fetch user workouts with Firestore as Source of Truth.
-  /// 1. Online: Reads Firestore users/{userId}/workouts & updates persistent disk cache.
-  /// 2. Offline (App run >= 1 time): Uses persistent disk cache from SharedPreferences.
-  /// 3. Offline (First run ever): Uses sample initial history.
   Future<List<WorkoutSession>> fetchUserWorkouts(String userId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('workouts')
-          .orderBy('completedAt', descending: true)
-          .get();
+    if (_firestore != null) {
+      try {
+        final snapshot = await _firestore!
+            .collection('users')
+            .doc(userId)
+            .collection('workouts')
+            .orderBy('completedAt', descending: true)
+            .get();
 
-      if (snapshot.docs.isNotEmpty) {
-        final remoteWorkouts = snapshot.docs
-            .map((doc) => WorkoutSession.fromJson(doc.data()..putIfAbsent('workoutId', () => doc.id)))
-            .toList();
+        if (snapshot.docs.isNotEmpty) {
+          final remoteWorkouts = snapshot.docs
+              .map((doc) => WorkoutSession.fromJson(doc.data()..putIfAbsent('workoutId', () => doc.id)))
+              .toList();
 
-        _cachedWorkouts = remoteWorkouts;
-        await _saveToPersistentCache(remoteWorkouts, userId);
-        debugPrint('🔥 Loaded ${remoteWorkouts.length} workouts from Firestore & updated local persistent cache.');
-        return _cachedWorkouts;
+          _cachedWorkouts = remoteWorkouts;
+          await _saveToPersistentCache(remoteWorkouts, userId);
+          debugPrint('🔥 Loaded ${remoteWorkouts.length} workouts from Firestore & updated local persistent cache.');
+          return _cachedWorkouts;
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error fetching workouts from Firestore: $e. Checking local persistent disk cache...');
       }
-    } catch (e) {
-      debugPrint('⚠️ Error fetching workouts from Firestore: $e. Checking local persistent disk cache...');
     }
 
     // Try loading persistent disk cache
@@ -100,7 +99,11 @@ class WorkoutRepository {
 
   /// Real-time stream of user workouts with Firestore Source of Truth.
   Stream<List<WorkoutSession>> streamUserWorkouts(String userId) {
-    return _firestore
+    if (_firestore == null) {
+      return Stream.value(_cachedWorkouts.isNotEmpty ? _cachedWorkouts : _sampleInitialHistory);
+    }
+
+    return _firestore!
         .collection('users')
         .doc(userId)
         .collection('workouts')
@@ -125,9 +128,9 @@ class WorkoutRepository {
     await _saveToPersistentCache(_cachedWorkouts, userId);
 
     // 2. Cloud Firestore write (Source of truth sync)
-    if (userId != null && userId.isNotEmpty) {
+    if (_firestore != null && userId != null && userId.isNotEmpty) {
       try {
-        final docRef = _firestore
+        final docRef = _firestore!
             .collection('users')
             .doc(userId)
             .collection('workouts')

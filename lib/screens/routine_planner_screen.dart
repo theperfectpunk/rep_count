@@ -27,7 +27,10 @@ class _RoutinePlannerScreenState extends ConsumerState<RoutinePlannerScreen> {
   }
 
   Future<void> _loadUserRoutines() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? 'default_user';
+    String userId = 'default_user';
+    try {
+      userId = FirebaseAuth.instance.currentUser?.uid ?? 'default_user';
+    } catch (_) {}
     final list = await _routineRepo.fetchUserRoutines(userId);
     if (mounted) {
       setState(() {
@@ -66,14 +69,16 @@ class _RoutinePlannerScreenState extends ConsumerState<RoutinePlannerScreen> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(dialogContext);
-                final userId =
-                    FirebaseAuth.instance.currentUser?.uid ?? 'default_user';
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(userId)
-                    .collection('routines')
-                    .doc(routine.routineId)
-                    .delete();
+                try {
+                  final userId =
+                      FirebaseAuth.instance.currentUser?.uid ?? 'default_user';
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(userId)
+                      .collection('routines')
+                      .doc(routine.routineId)
+                      .delete();
+                } catch (_) {}
 
                 if (mounted) {
                   await _loadUserRoutines();

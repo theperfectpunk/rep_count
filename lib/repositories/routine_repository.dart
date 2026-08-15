@@ -5,11 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/routine.dart';
 
 class RoutineRepository {
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
   List<Routine> _cachedRoutines = [];
 
   RoutineRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore;
 
   /// Default prepopulated routines covering EVERY body part
   static final List<Routine> defaultBodyPartRoutines = [
@@ -23,49 +23,41 @@ class RoutineRepository {
     ),
     Routine(
       routineId: 'rt_back_01',
-      title: 'Back Width & Thickness',
+      title: 'Back Thickness & Lats Width',
       folderName: 'Body Part Workouts',
-      exerciseIds: ['ex_pull_ups', 'ex_barbell_row', 'ex_lat_pulldown', 'ex_seated_cable_row'],
+      exerciseIds: ['ex_deadlift', 'ex_pull_ups', 'ex_barbell_row', 'ex_lat_pulldown'],
       estimatedDurationMinutes: 55,
-      targetMuscles: ['Back', 'Lats', 'Biceps'],
+      targetMuscles: ['Lats', 'Upper Back', 'Biceps'],
     ),
     Routine(
       routineId: 'rt_shoulders_01',
-      title: 'Shoulder 3D Deltoid Focus',
+      title: 'Boulder Shoulders',
       folderName: 'Body Part Workouts',
-      exerciseIds: ['ex_overhead_press', 'ex_db_lateral_raise', 'ex_face_pulls', 'ex_arnold_press'],
+      exerciseIds: ['ex_overhead_press', 'ex_db_lateral_raise', 'ex_rear_delt_fly', 'ex_front_raise'],
       estimatedDurationMinutes: 45,
-      targetMuscles: ['Shoulders', 'Traps', 'Triceps'],
+      targetMuscles: ['Shoulders', 'Upper Chest', 'Traps'],
     ),
     Routine(
       routineId: 'rt_quads_01',
-      title: 'Quad Quad-Dominant Legs',
+      title: 'Quad Dominance & Power',
       folderName: 'Body Part Workouts',
-      exerciseIds: ['ex_squat', 'ex_leg_press', 'ex_bulgarian_split_squat', 'ex_leg_extension'],
+      exerciseIds: ['ex_squat', 'ex_leg_press', 'ex_leg_extension', 'ex_bulgarian_split_squat'],
       estimatedDurationMinutes: 60,
       targetMuscles: ['Quads', 'Glutes'],
     ),
     Routine(
-      routineId: 'rt_hamstrings_01',
-      title: 'Hamstring & Glute Power',
+      routineId: 'rt_hamstrings_glutes_01',
+      title: 'Posterior Chain & Glutes',
       folderName: 'Body Part Workouts',
-      exerciseIds: ['ex_deadlift', 'ex_romanian_deadlift', 'ex_lying_leg_curl', 'ex_hip_thrust'],
-      estimatedDurationMinutes: 60,
-      targetMuscles: ['Hamstrings', 'Glutes', 'Lower Back'],
-    ),
-    Routine(
-      routineId: 'rt_glutes_01',
-      title: 'Glute Activation & Growth',
-      folderName: 'Body Part Workouts',
-      exerciseIds: ['ex_hip_thrust', 'ex_glute_bridge', 'ex_cable_kickback', 'ex_step_up'],
-      estimatedDurationMinutes: 45,
-      targetMuscles: ['Glutes', 'Hamstrings'],
+      exerciseIds: ['ex_romanian_deadlift', 'ex_lying_leg_curl', 'ex_hip_thrust', 'ex_seated_leg_curl'],
+      estimatedDurationMinutes: 50,
+      targetMuscles: ['Hamstrings', 'Glutes'],
     ),
     Routine(
       routineId: 'rt_arms_01',
-      title: 'Bicep & Tricep Arm Overload',
+      title: 'Ultimate Arm Pump',
       folderName: 'Body Part Workouts',
-      exerciseIds: ['ex_barbell_curl', 'ex_hammer_curl', 'ex_tricep_pushdown', 'ex_skull_crushers'],
+      exerciseIds: ['ex_barbell_curl', 'ex_skull_crushers', 'ex_hammer_curl', 'ex_tricep_pushdown'],
       estimatedDurationMinutes: 45,
       targetMuscles: ['Biceps', 'Triceps', 'Forearms'],
     ),
@@ -81,10 +73,11 @@ class RoutineRepository {
 
   /// Prepopulates initial workouts for EVERY body part when a new user is created
   Future<void> prepopulateUserBodyPartWorkouts(String userId) async {
+    if (_firestore == null) return;
     try {
-      final batch = _firestore.batch();
+      final batch = _firestore!.batch();
       for (final routine in defaultBodyPartRoutines) {
-        final docRef = _firestore
+        final docRef = _firestore!
             .collection('users')
             .doc(userId)
             .collection('routines')
@@ -99,32 +92,33 @@ class RoutineRepository {
   }
 
   /// Fetch user routines with Firestore Source of Truth.
-  /// Prepopulates body part workouts on Firestore if collection empty for user.
   Future<List<Routine>> fetchUserRoutines(String userId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('routines')
-          .get();
+    if (_firestore != null) {
+      try {
+        final snapshot = await _firestore!
+            .collection('users')
+            .doc(userId)
+            .collection('routines')
+            .get();
 
-      if (snapshot.docs.isEmpty) {
-        debugPrint('🔥 New user detected ($userId). Prepopulating body part workouts...');
-        await prepopulateUserBodyPartWorkouts(userId);
-        _cachedRoutines = List.from(defaultBodyPartRoutines);
-        await _saveToPersistentCache(_cachedRoutines, userId);
+        if (snapshot.docs.isEmpty) {
+          debugPrint('🔥 New user detected ($userId). Prepopulating body part workouts...');
+          await prepopulateUserBodyPartWorkouts(userId);
+          _cachedRoutines = List.from(defaultBodyPartRoutines);
+          await _saveToPersistentCache(_cachedRoutines, userId);
+          return _cachedRoutines;
+        }
+
+        final routines = snapshot.docs
+            .map((doc) => Routine.fromJson(doc.data()..putIfAbsent('routineId', () => doc.id)))
+            .toList();
+        _cachedRoutines = routines;
+        await _saveToPersistentCache(routines, userId);
+        debugPrint('🔥 Loaded ${routines.length} user routines from Firestore & updated local persistent cache.');
         return _cachedRoutines;
+      } catch (e) {
+        debugPrint('⚠️ Error fetching user routines: $e. Checking persistent disk cache...');
       }
-
-      final routines = snapshot.docs
-          .map((doc) => Routine.fromJson(doc.data()..putIfAbsent('routineId', () => doc.id)))
-          .toList();
-      _cachedRoutines = routines;
-      await _saveToPersistentCache(routines, userId);
-      debugPrint('🔥 Loaded ${routines.length} user routines from Firestore & updated local persistent cache.');
-      return _cachedRoutines;
-    } catch (e) {
-      debugPrint('⚠️ Error fetching user routines: $e. Checking persistent disk cache...');
     }
 
     final savedCache = await _loadFromPersistentCache(userId);

@@ -9,7 +9,10 @@ import '../screens/settings_screen.dart';
 
 final userWorkoutsProvider = FutureProvider<List<WorkoutSession>>((ref) async {
   final repo = ref.watch(workoutRepositoryProvider);
-  final userId = FirebaseAuth.instance.currentUser?.uid;
+  String? userId;
+  try {
+    userId = FirebaseAuth.instance.currentUser?.uid;
+  } catch (_) {}
   return await repo.fetchUserWorkouts(userId ?? '');
 });
 
@@ -19,7 +22,10 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final workoutsAsync = ref.watch(userWorkoutsProvider);
-    final user = FirebaseAuth.instance.currentUser;
+    User? user;
+    try {
+      user = FirebaseAuth.instance.currentUser;
+    } catch (_) {}
 
     final userName = user?.displayName ??
         (user?.email != null && user!.email!.contains('@')

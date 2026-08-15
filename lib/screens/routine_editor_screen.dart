@@ -136,7 +136,10 @@ class _RoutineEditorScreenState extends State<RoutineEditorScreen> {
     });
 
     try {
-      final userId = FirebaseAuth.instance.currentUser?.uid ?? 'default_user';
+      String userId = 'default_user';
+      try {
+        userId = FirebaseAuth.instance.currentUser?.uid ?? 'default_user';
+      } catch (_) {}
       final exerciseIds = _selectedExercises.map((e) => e.id).toList();
       final targetMuscles = _selectedExercises
           .map((e) => e.primaryMuscle)
