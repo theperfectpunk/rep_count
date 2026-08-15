@@ -41,9 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final dynamic weightVal = prefs.get('user_barbell_weight');
     double loadedWeight = 20.0;
-    if (weightVal is double) {
-      loadedWeight = weightVal;
-    } else if (weightVal is int) {
+    if (weightVal is num) {
       loadedWeight = weightVal.toDouble();
     } else if (weightVal is String) {
       loadedWeight =
