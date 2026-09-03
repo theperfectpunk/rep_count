@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/workout_session.dart';
-import '../models/exercise_log.dart';
 
 class WorkoutSummaryScreen extends StatelessWidget {
   final WorkoutSession session;

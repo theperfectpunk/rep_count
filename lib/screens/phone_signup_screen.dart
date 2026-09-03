@@ -104,9 +104,15 @@ class _PhoneSignupScreenState extends State<PhoneSignupScreen> {
       },
       onError: (error) {
         if (mounted) {
+          String displayError = error;
+          if (error.contains('BILLING_NOT_ENABLED')) {
+            displayError = 'Real SMS requires Firebase Blaze plan. Tap "Use Demo Number" or "Continue as Guest" below.';
+          } else if (error.contains('CONFIGURATION_NOT_FOUND')) {
+            displayError = 'Phone Auth not enabled in Firebase Console. Tap "Continue as Guest" below.';
+          }
           setState(() {
             _isLoading = false;
-            _errorMessage = error;
+            _errorMessage = displayError;
           });
         }
       },

@@ -30,16 +30,17 @@ class DashboardScreen extends ConsumerWidget {
     final userName = user?.displayName ??
         (user?.email != null && user!.email!.contains('@')
             ? user.email!.split('@').first
-            : 'Mohit Tokas');
+            : (user?.phoneNumber != null && user!.phoneNumber!.isNotEmpty
+                ? user.phoneNumber!
+                : 'Mohit Tokas'));
 
-    final initials = userName.isNotEmpty
-        ? (userName.trim().split(' ').length > 1
-            ? '${userName.trim().split(' ')[0][0]}${userName.trim().split(' ')[1][0]}'
-                .toUpperCase()
-            : userName
-                .substring(0, userName.length >= 2 ? 2 : 1)
-                .toUpperCase())
-        : 'MT';
+    final trimmedName = userName.trim();
+    final parts = trimmedName.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final initials = parts.length > 1
+        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+        : (trimmedName.isNotEmpty
+            ? trimmedName.substring(0, trimmedName.length >= 2 ? 2 : 1).toUpperCase()
+            : 'MT');
 
     return Scaffold(
       backgroundColor: const Color(0xFF11111B),
