@@ -89,7 +89,55 @@ class LiveWorkoutScreen extends ConsumerWidget {
     );
   }
 
-  void _showRpePicker(BuildContext context, WidgetRef ref, String exerciseId, int setIdx) {
+  Widget _buildTypeChip(
+    BuildContext ctx,
+    WidgetRef ref,
+    String exerciseId,
+    int setIdx,
+    SetType type,
+    String label,
+    Color color,
+    SetType currentType,
+  ) {
+    final isSelected = currentType == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          ref.read(activeWorkoutProvider.notifier).updateSetType(exerciseId, setIdx, type);
+          Navigator.pop(ctx);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? color : Colors.white10,
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? color : Colors.white70,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSetDetailsModal(
+    BuildContext context,
+    WidgetRef ref,
+    String exerciseId,
+    int setIdx,
+    SetItem setItem,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E2E),
@@ -98,35 +146,115 @@ class LiveWorkoutScreen extends ConsumerWidget {
       ),
       builder: (ctx) {
         final rpeValues = [6.0, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0];
+        final estimated1RM = setItem.reps > 0
+            ? (setItem.weightKg * (1 + setItem.reps / 30)).round()
+            : 0;
+
         return Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'RATE OF PERCEIVED EXERTION (RPE)',
-                style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: rpeValues.map((val) {
-                  return ActionChip(
-                    label: Text('@ RPE $val',
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'SET ${setIdx + 1} SETTINGS',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  if (estimated1RM > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6C5CE7).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF6C5CE7).withOpacity(0.5),
+                        ),
+                      ),
+                      child: Text(
+                        '⚡ Est. 1RM: $estimated1RM kg',
                         style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
-                    backgroundColor: const Color(0xFF6C5CE7).withOpacity(0.3),
-                    side: const BorderSide(color: Color(0xFF6C5CE7)),
+                          color: Color(0xFF6C5CE7),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Set Type',
+                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _buildTypeChip(ctx, ref, exerciseId, setIdx, SetType.NORMAL, 'Normal', const Color(0xFF00B894), setItem.type),
+                  const SizedBox(width: 6),
+                  _buildTypeChip(ctx, ref, exerciseId, setIdx, SetType.WARMUP, 'Warmup (W)', Colors.orangeAccent, setItem.type),
+                  const SizedBox(width: 6),
+                  _buildTypeChip(ctx, ref, exerciseId, setIdx, SetType.DROPSET, 'Drop (D)', Colors.purpleAccent, setItem.type),
+                  const SizedBox(width: 6),
+                  _buildTypeChip(ctx, ref, exerciseId, setIdx, SetType.FAILURE, 'Failure (F)', Colors.redAccent, setItem.type),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Rate of Perceived Exertion (RPE)',
+                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Log exertion & reps in reserve (RIR)',
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  ActionChip(
+                    label: const Text('None', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    backgroundColor: setItem.rpe == null
+                        ? const Color(0xFF6C5CE7).withOpacity(0.4)
+                        : Colors.white.withOpacity(0.05),
                     onPressed: () {
+                      ref.read(activeWorkoutProvider.notifier).updateSetRpe(exerciseId, setIdx, null);
                       Navigator.pop(ctx);
                     },
-                  );
-                }).toList(),
+                  ),
+                  ...rpeValues.map((val) {
+                    final isSelected = setItem.rpe == val;
+                    return ActionChip(
+                      label: Text(
+                        '@ $val',
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.white70,
+                          fontSize: 11,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      backgroundColor: isSelected
+                          ? const Color(0xFF6C5CE7)
+                          : const Color(0xFF6C5CE7).withOpacity(0.15),
+                      side: BorderSide(
+                        color: isSelected ? const Color(0xFF6C5CE7) : Colors.transparent,
+                      ),
+                      onPressed: () {
+                        ref.read(activeWorkoutProvider.notifier).updateSetRpe(exerciseId, setIdx, val);
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  }).toList(),
+                ],
               ),
             ],
           ),
@@ -144,7 +272,6 @@ class LiveWorkoutScreen extends ConsumerWidget {
       case SetType.FAILURE:
         return 'F';
       case SetType.NORMAL:
-      default:
         return '';
     }
   }
@@ -158,7 +285,6 @@ class LiveWorkoutScreen extends ConsumerWidget {
       case SetType.FAILURE:
         return Colors.redAccent;
       case SetType.NORMAL:
-      default:
         return const Color(0xFF00B894);
     }
   }
@@ -369,26 +495,71 @@ class LiveWorkoutScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                exercise.exerciseName,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  exercise.exerciseName,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.calculate_outlined,
-                    color: Color(0xFF6C5CE7)),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (ctx) => PlateCalculatorModal(
-                      targetWeightKg: exercise.sets.isNotEmpty
-                          ? exercise.sets.first.weightKg
-                          : 60.0,
-                    ),
-                  );
-                },
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.calculate_outlined,
+                        color: Color(0xFF6C5CE7)),
+                    tooltip: 'Plate Calculator',
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (ctx) => PlateCalculatorModal(
+                          targetWeightKg: exercise.sets.isNotEmpty
+                              ? exercise.sets.first.weightKg
+                              : 60.0,
+                        ),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline,
+                        color: Colors.redAccent, size: 20),
+                    tooltip: 'Remove Exercise',
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (dialogCtx) => AlertDialog(
+                          backgroundColor: const Color(0xFF1E1E2E),
+                          title: const Text('Remove Exercise',
+                              style: TextStyle(color: Colors.white)),
+                          content: Text(
+                              'Remove "${exercise.exerciseName}" from this workout session?',
+                              style: const TextStyle(color: Colors.white70)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogCtx),
+                              child: const Text('Cancel',
+                                  style: TextStyle(color: Colors.grey)),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent),
+                              onPressed: () {
+                                Navigator.pop(dialogCtx);
+                                ref
+                                    .read(activeWorkoutProvider.notifier)
+                                    .removeExercise(exercise.exerciseId);
+                              },
+                              child: const Text('Remove',
+                                  style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -398,7 +569,7 @@ class LiveWorkoutScreen extends ConsumerWidget {
           Row(
             children: [
               const SizedBox(width: 44, child: Text('SET', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold))),
-              const Expanded(child: Center(child: Text('PREV', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)))),
+              const Expanded(child: Center(child: Text('EST 1RM', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)))),
               const Expanded(child: Center(child: Text('KG / LBS', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)))),
               const Expanded(child: Center(child: Text('REPS', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)))),
               const SizedBox(width: 44, child: Center(child: Text('✓', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)))),
@@ -430,38 +601,61 @@ class LiveWorkoutScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 6.0),
                 child: Row(
                   children: [
-                    // Set Number & Type Pill
+                    // Set Number & Type Pill (Tap to edit Set Type & RPE)
                     SizedBox(
                       width: 44,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          color: setItem.isCompleted
-                              ? const Color(0xFF00B894).withOpacity(0.2)
-                              : Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Center(
-                          child: Text(
-                            typeTag.isNotEmpty ? '$typeTag ${setIdx + 1}' : '${setIdx + 1}',
-                            style: TextStyle(
-                              color: setItem.isCompleted
-                                  ? _getSetTypeColor(setItem.type)
-                                  : Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                      child: InkWell(
+                        onTap: () => _showSetDetailsModal(
+                            context, ref, exercise.exerciseId, setIdx, setItem),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: setItem.isCompleted
+                                ? const Color(0xFF00B894).withOpacity(0.2)
+                                : Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(6),
+                            border: setItem.type != SetType.NORMAL
+                                ? Border.all(
+                                    color: _getSetTypeColor(setItem.type)
+                                        .withOpacity(0.7),
+                                    width: 1.2)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              typeTag.isNotEmpty ? '$typeTag ${setIdx + 1}' : '${setIdx + 1}',
+                              style: TextStyle(
+                                color: setItem.isCompleted
+                                    ? _getSetTypeColor(setItem.type)
+                                    : (typeTag.isNotEmpty
+                                        ? _getSetTypeColor(setItem.type)
+                                        : Colors.white),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
 
-                    // PREV Performance Placeholder
-                    const Expanded(
+                    // EST 1RM / PREV Performance
+                    Expanded(
                       child: Center(
                         child: Text(
-                          '-- × --',
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                          setItem.isCompleted && setItem.reps > 0
+                              ? '${(setItem.weightKg * (1 + setItem.reps / 30)).round()} kg'
+                              : (setItem.rpe != null ? '@${setItem.rpe}' : '-- × --'),
+                          style: TextStyle(
+                            color: setItem.isCompleted
+                                ? const Color(0xFF6C5CE7)
+                                : Colors.grey,
+                            fontSize: 11,
+                            fontWeight: setItem.isCompleted
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
                         ),
                       ),
                     ),
@@ -556,9 +750,14 @@ class LiveWorkoutScreen extends ConsumerWidget {
                 label: const Text('Add Set',
                     style: TextStyle(color: Color(0xFF6C5CE7))),
               ),
-              TextButton(
-                onPressed: () => _showRpePicker(context, ref, exercise.exerciseId, 0),
-                child: Text('RPE Rating',
+              TextButton.icon(
+                onPressed: () {
+                  if (exercise.sets.isNotEmpty) {
+                    _showSetDetailsModal(context, ref, exercise.exerciseId, exercise.sets.length - 1, exercise.sets.last);
+                  }
+                },
+                icon: const Icon(Icons.tune, size: 14, color: Colors.grey),
+                label: Text('Set Details',
                     style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
               ),
             ],

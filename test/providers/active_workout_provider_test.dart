@@ -104,5 +104,56 @@ void main() {
       expect(state.exercises.first.sets.first.weightKg, equals(140.0));
       expect(state.exercises.first.sets.first.index, equals(0));
     });
+
+    test('removeExercise removes entire exercise from active session', () {
+      final notifier = container.read(activeWorkoutProvider.notifier);
+      notifier.startEmptyWorkout();
+
+      notifier.addExercise(ExerciseLog(
+        exerciseId: 'ex_bench',
+        exerciseName: 'Bench Press',
+        targetMuscle: 'Chest',
+        equipment: 'Barbell',
+        sets: [SetItem(index: 0, weightKg: 100, reps: 10)],
+      ));
+
+      expect(container.read(activeWorkoutProvider)!.exercises.length, equals(1));
+      notifier.removeExercise('ex_bench');
+      expect(container.read(activeWorkoutProvider)!.exercises, isEmpty);
+    });
+
+    test('updateSetType updates set classification correctly', () {
+      final notifier = container.read(activeWorkoutProvider.notifier);
+      notifier.startEmptyWorkout();
+
+      notifier.addExercise(ExerciseLog(
+        exerciseId: 'ex_bench',
+        exerciseName: 'Bench Press',
+        targetMuscle: 'Chest',
+        equipment: 'Barbell',
+        sets: [SetItem(index: 0, weightKg: 60, reps: 15, type: SetType.NORMAL)],
+      ));
+
+      notifier.updateSetType('ex_bench', 0, SetType.WARMUP);
+      final set = container.read(activeWorkoutProvider)!.exercises.first.sets.first;
+      expect(set.type, equals(SetType.WARMUP));
+    });
+
+    test('updateSetRpe logs perceived exertion rating', () {
+      final notifier = container.read(activeWorkoutProvider.notifier);
+      notifier.startEmptyWorkout();
+
+      notifier.addExercise(ExerciseLog(
+        exerciseId: 'ex_deadlift',
+        exerciseName: 'Deadlift',
+        targetMuscle: 'Hamstrings',
+        equipment: 'Barbell',
+        sets: [SetItem(index: 0, weightKg: 180, reps: 3)],
+      ));
+
+      notifier.updateSetRpe('ex_deadlift', 0, 8.5);
+      final set = container.read(activeWorkoutProvider)!.exercises.first.sets.first;
+      expect(set.rpe, equals(8.5));
+    });
   });
 }

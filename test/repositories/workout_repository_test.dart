@@ -39,5 +39,12 @@ void main() {
       expect(history.first.workoutId, equals('test_wk_99'));
       expect(history.first.title, equals('New PR Session'));
     });
+
+    test('exportWorkoutsToCsv generates formatted CSV string', () {
+      final history = repo.getWorkoutHistory();
+      final csv = repo.exportWorkoutsToCsv(history);
+      expect(csv, contains('Date,Workout Title,Duration (min),Total Volume (kg)'));
+      expect(csv, contains('Push Heavy - Chest & Shoulders'));
+    });
   });
 }

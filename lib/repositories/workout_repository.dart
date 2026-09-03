@@ -175,4 +175,39 @@ class WorkoutRepository {
       return null;
     }
   }
+
+  String exportWorkoutsToCsv(List<WorkoutSession> sessions) {
+    final buffer = StringBuffer();
+    buffer.writeln('Date,Workout Title,Duration (min),Total Volume (kg),Exercise,Set,Type,Weight (kg),Reps,Est 1RM (kg),RPE');
+    for (final session in sessions) {
+      final dateStr = (session.completedAt ?? session.startedAt).toIso8601String().split('T').first;
+      final durationMin = (session.durationSeconds / 60).round();
+      final title = '"${session.title.replaceAll('"', '""')}"';
+
+      if (session.exercises.isEmpty) {
+        buffer.writeln('$dateStr,$title,$durationMin,${session.totalVolumeKg},,,,,,,');
+      } else {
+        for (final ex in session.exercises) {
+          final exName = '"${ex.exerciseName.replaceAll('"', '""')}"';
+          if (ex.sets.isEmpty) {
+            buffer.writeln('$dateStr,$title,$durationMin,${session.totalVolumeKg},$exName,,,,,');
+          } else {
+            for (var i = 0; i < ex.sets.length; i++) {
+              final s = ex.sets[i];
+              final est1rm = s.reps > 0 ? (s.weightKg * (1 + s.reps / 30)).round() : 0;
+              final rpe = s.rpe != null ? s.rpe.toString() : '';
+              buffer.writeln('$dateStr,$title,$durationMin,${session.totalVolumeKg},$exName,${i + 1},${s.type.name},${s.weightKg},${s.reps},$est1rm,$rpe');
+            }
+          }
+        }
+      }
+    }
+    return buffer.toString();
+  }
+
+  String exportWorkoutsToJson(List<WorkoutSession> sessions) {
+    return const JsonEncoder.withIndent('  ').convert(
+      sessions.map((s) => s.toJson()).toList(),
+    );
+  }
 }

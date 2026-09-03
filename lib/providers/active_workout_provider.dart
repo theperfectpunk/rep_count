@@ -131,6 +131,57 @@ class ActiveWorkoutNotifier extends StateNotifier<WorkoutSession?> {
     state = state!.copyWith(exercises: updatedExercises);
   }
 
+  void removeExercise(String exerciseId) {
+    if (state == null) return;
+    final updatedExercises = state!.exercises
+        .where((ex) => ex.exerciseId != exerciseId)
+        .toList();
+    final newTotalVolume = updatedExercises.fold<double>(
+      0.0,
+      (sum, ex) => sum + ex.totalVolumeKg,
+    );
+    state = state!.copyWith(
+      exercises: updatedExercises,
+      totalVolumeKg: newTotalVolume,
+    );
+  }
+
+  void updateSetType(String exerciseId, int setIndex, SetType type) {
+    if (state == null) return;
+    final updatedExercises = state!.exercises.map((ex) {
+      if (ex.exerciseId == exerciseId) {
+        final updatedSets = ex.sets.asMap().entries.map((entry) {
+          if (entry.key == setIndex) {
+            return entry.value.copyWith(type: type);
+          }
+          return entry.value;
+        }).toList();
+        return ex.copyWith(sets: updatedSets);
+      }
+      return ex;
+    }).toList();
+
+    state = state!.copyWith(exercises: updatedExercises);
+  }
+
+  void updateSetRpe(String exerciseId, int setIndex, double? rpe) {
+    if (state == null) return;
+    final updatedExercises = state!.exercises.map((ex) {
+      if (ex.exerciseId == exerciseId) {
+        final updatedSets = ex.sets.asMap().entries.map((entry) {
+          if (entry.key == setIndex) {
+            return entry.value.copyWith(rpe: rpe);
+          }
+          return entry.value;
+        }).toList();
+        return ex.copyWith(sets: updatedSets);
+      }
+      return ex;
+    }).toList();
+
+    state = state!.copyWith(exercises: updatedExercises);
+  }
+
   WorkoutSession? finishWorkout() {
     if (state == null) return null;
     _sessionDurationTimer?.cancel();

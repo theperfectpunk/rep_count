@@ -576,7 +576,7 @@ function renderWorkoutLogs() {
           <thead>
             <tr>
               <th style="width: 36px;">SET</th>
-              <th style="width: 75px;">PREV</th>
+              <th style="width: 75px;">EST 1RM</th>
               <th>KG</th>
               <th>REPS</th>
               <th style="width: 36px;">✓</th>
@@ -585,8 +585,18 @@ function renderWorkoutLogs() {
           <tbody>
             ${ex.sets.map((s, setIdx) => `
               <tr class="set-row">
-                <td><div class="set-num ${s.completed ? 'completed' : ''}">${setIdx + 1}</div></td>
-                <td><div class="set-prev">${s.prev || '—'}</div></td>
+                <td>
+                  <div class="set-num ${s.completed ? 'completed' : ''} ${s.type && s.type !== 'NORMAL' ? 'type-' + s.type.toLowerCase() : ''}"
+                       onclick="window.cycleSetType(${exIdx}, ${setIdx})"
+                       title="Click to cycle set type: Normal, Warmup (W), Drop (D), Failure (F)">
+                    ${s.type === 'WARMUP' ? 'W' : s.type === 'DROPSET' ? 'D' : s.type === 'FAILURE' ? 'F' : (setIdx + 1)}
+                  </div>
+                </td>
+                <td>
+                  <div class="set-prev" title="Estimated 1RM on completion">
+                    ${s.completed && s.reps > 0 ? Math.round(s.weight * (1 + s.reps / 30)) + ' kg' : (s.prev || '—')}
+                  </div>
+                </td>
                 <td><input type="number" class="set-input" value="${s.weight}" onchange="window.updateSetVal(${exIdx}, ${setIdx}, 'weight', this.value)"></td>
                 <td><input type="number" class="set-input" value="${s.reps}" onchange="window.updateSetVal(${exIdx}, ${setIdx}, 'reps', this.value)"></td>
                 <td><button class="set-check ${s.completed ? 'completed' : ''}" onclick="window.toggleSet(${exIdx}, ${setIdx})">✓</button></td>
@@ -600,6 +610,47 @@ function renderWorkoutLogs() {
     </div>
   `).join('');
 }
+
+window.cycleSetType = function(exIdx, setIdx) {
+  if (!activeWorkout) return;
+  const s = activeWorkout.exercises[exIdx].sets[setIdx];
+  const types = ['NORMAL', 'WARMUP', 'DROPSET', 'FAILURE'];
+  const curIdx = types.indexOf(s.type || 'NORMAL');
+  s.type = types[(curIdx + 1) % types.length];
+  const labels = {
+    'NORMAL': 'Normal working set',
+    'WARMUP': 'Warmup set (W)',
+    'DROPSET': 'Drop set (D)',
+    'FAILURE': 'Failure set (F)'
+  };
+  showToast(`Set ${setIdx + 1}: ${labels[s.type]}`, 'info');
+  renderWorkoutLogs();
+};
+
+window.exportWorkoutsCSV = function() {
+  const history = [
+    { title: 'Push Heavy - Chest & Shoulders', date: '2026-09-01', duration: 75, volume: 12450, exercise: 'Barbell Bench Press', set: 1, type: 'WARMUP', weight: 60, reps: 12, est1rm: 84 },
+    { title: 'Push Heavy - Chest & Shoulders', date: '2026-09-01', duration: 75, volume: 12450, exercise: 'Barbell Bench Press', set: 2, type: 'NORMAL', weight: 100, reps: 8, est1rm: 127 },
+    { title: 'Push Heavy - Chest & Shoulders', date: '2026-09-01', duration: 75, volume: 12450, exercise: 'Incline Dumbbell Press', set: 1, type: 'NORMAL', weight: 36, reps: 10, est1rm: 48 },
+    { title: 'Pull & Arms', date: '2026-08-30', duration: 60, volume: 9800, exercise: 'Bent-Over Barbell Row', set: 1, type: 'NORMAL', weight: 80, reps: 10, est1rm: 107 },
+    { title: 'Leg Day Hypertrophy', date: '2026-08-28', duration: 80, volume: 15600, exercise: 'Barbell Back Squat', set: 1, type: 'NORMAL', weight: 140, reps: 6, est1rm: 168 }
+  ];
+
+  let csv = 'Date,Workout Title,Duration (min),Total Volume (kg),Exercise,Set,Type,Weight (kg),Reps,Est 1RM (kg)\n';
+  history.forEach(row => {
+    csv += `${row.date},"${row.title}",${row.duration},${row.volume},"${row.exercise}",${row.set},${row.type},${row.weight},${row.reps},${row.est1rm}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `RepCount_Workouts_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('Workout history exported as CSV! 📥', 'success');
+};
 
 window.removeExercise = function(exIdx) {
   if (!activeWorkout) return;

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../repositories/workout_repository.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -21,6 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _unit = 'kg';
   double _barbellWeight = 20.0;
   int _restSeconds = 60;
+  final WorkoutRepository _workoutRepository = WorkoutRepository();
 
   // Firebase Auth User
   User? _currentUser;
@@ -312,7 +315,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 const SizedBox(height: 24),
 
-                // SECTION 4: ACCOUNT
+                // SECTION 4: DATA MANAGEMENT
+                _buildSectionHeader('Data Management'),
+                const SizedBox(height: 10),
+                _buildCardContainer(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _primaryColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.file_download_outlined, color: _primaryColor),
+                    ),
+                    title: const Text(
+                      'Export Workout Data',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Export all workouts as CSV (Excel, Sheets, Hevy)',
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white38),
+                    onTap: _showExportDialog,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // SECTION 5: ACCOUNT
                 _buildSectionHeader('Account'),
                 const SizedBox(height: 10),
                 _buildCardContainer(
@@ -438,6 +474,104 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showExportDialog() {
+    final workouts = _workoutRepository.getWorkoutHistory();
+    final csvContent = _workoutRepository.exportWorkoutsToCsv(workouts);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _cardColor,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          height: MediaQuery.of(context).size.height * 0.75,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'EXPORT WORKOUTS (CSV)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${workouts.length} workouts formatted for Excel, Google Sheets, Strong, or Hevy.',
+                style: const TextStyle(color: Colors.white60, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      csvContent,
+                      style: const TextStyle(
+                        color: _accentColor,
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(ctx);
+                    await Clipboard.setData(ClipboardData(text: csvContent));
+                    navigator.pop();
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('CSV copied to clipboard! Ready to paste into Sheets or Excel.'),
+                        backgroundColor: _accentColor,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded, color: Colors.white),
+                  label: const Text(
+                    'Copy CSV to Clipboard',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
