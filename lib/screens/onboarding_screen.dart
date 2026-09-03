@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  final VoidCallback? onComplete;
+  const OnboardingScreen({super.key, this.onComplete});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -68,13 +69,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _finishOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_complete', true);
     await prefs.setString('user_goal', _selectedGoal);
     await prefs.setString('user_experience', _selectedExperience);
     await prefs.setString('user_unit', _selectedUnit);
     await prefs.setDouble('user_barbell_weight', _selectedBarbellWeight);
 
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/');
+    if (widget.onComplete != null) {
+      widget.onComplete!();
+    } else {
+      Navigator.pushReplacementNamed(context, '/');
+    }
   }
 
   void _nextPage() {

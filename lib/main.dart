@@ -102,7 +102,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         if (!_onboardingDone) {
-          return const OnboardingScreen();
+          return OnboardingScreen(
+            onComplete: () {
+              setState(() {
+                _onboardingDone = true;
+              });
+            },
+          );
         }
 
         return const MainNavigationShell();
